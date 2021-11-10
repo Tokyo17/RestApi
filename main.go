@@ -70,7 +70,7 @@ func showData(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	fmt.Println("hello")
+	fmt.Println("hello juga")
 	r := mux.NewRouter()
 	// Hasil = []coba{}
 	Datas = []data{{Id: "1", FullName: "Ummul Qoyimah", Age: "21"}, {Id: "2", FullName: "Dewi Novita Sari", Age: "20"}}
