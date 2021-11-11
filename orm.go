@@ -1,13 +1,10 @@
 package main
 
 import (
-	// "fmt"
 	"github.com/labstack/echo/v4"
-	// "net/http"
 	"restApi/config"
 	"restApi/controller"
 	"restApi/model"
-	// "time"
 )
 
 var Datas []model.User
@@ -18,11 +15,12 @@ func main() {
 
 	e := echo.New()
 
-	e.GET("/getUser", controller.GetUserController)
-	e.POST("/crtUser", controller.CreateUserController)
-	e.DELETE("/delUser", controller.DeleteUserController)
-	e.PUT("/updUser", controller.UpdateUserController)
+	e.GET("/users", controller.GetUserController)
+	e.GET("/users/:id", controller.FilterUserController)
+	e.GET("/users/deleted", controller.FilterDeletedUserController)
+	e.POST("/users", controller.CreateUserController)
+	e.DELETE("/users/:id", controller.DeleteUserController)
+	e.PUT("/users/:id", controller.UpdateUserController)
 
 	e.Start(":8000")
-
 }
