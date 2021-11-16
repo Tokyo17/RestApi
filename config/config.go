@@ -18,5 +18,5 @@ func InitDB() {
 	if err != nil {
 		panic(err)
 	}
-	DB.AutoMigrate(&model.User{})
+	DB.AutoMigrate(&model.User{}, &model.Products{}, &model.Type{})
 }
