@@ -1,120 +1,102 @@
 package main
 
 import (
-	"database/sql"
-	"encoding/json"
-	"fmt"
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/gorilla/mux"
-	"io/ioutil"
+	_middleware "final/app/middleware"
+	"final/app/routes"
+	_adminUseCase "final/business/admins"
+	_productUseCase "final/business/products"
+	_transactionUseCase "final/business/transactions"
+	_userUseCase "final/business/users"
+	_adminController "final/controllers/admins"
+	_productController "final/controllers/products"
+	_transactionController "final/controllers/transactions"
+	_userController "final/controllers/users"
+	_adminDB "final/drivers/database/admins"
+	_productDB "final/drivers/database/products"
+	_transactionDB "final/drivers/database/transactions"
+	_userDB "final/drivers/database/users"
+	_mysqlDriver "final/drivers/mysql"
 	"log"
-	"net/http"
+	"time"
+
+	"github.com/labstack/echo/v4"
+	"github.com/spf13/viper"
+	"gorm.io/gorm"
 )
 
-type data struct {
-	Id       string
-	FullName string
-	Age      string
-}
-
-type coba struct {
-	Nama string
-}
-
-var Datas []data
-var Hasil = []coba{}
-
-func user(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Welcome To My Restfull Api")
-}
-
-func showSingleData(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	key := vars["id"]
-	for _, data := range Datas {
-		if data.Id == key {
-			json.NewEncoder(w).Encode(data)
-		}
+func init() {
+	viper.SetConfigFile(`config.json`)
+	err := viper.ReadInConfig()
+	if err != nil {
+		panic(err)
+	}
+	if viper.GetBool(`debug`) {
+		log.Println("Service RUN on DEBUG mode")
 	}
 }
 
-func newData(w http.ResponseWriter, r *http.Request) {
-	reqBody, _ := ioutil.ReadAll(r.Body)
-	var newData data
-	json.Unmarshal(reqBody, &newData)
-	Datas = append(Datas, newData)
-	json.NewEncoder(w).Encode(newData)
-}
-func newSql(w http.ResponseWriter, r *http.Request) {
-	db := connect()
-	defer db.Close()
-
-	reqBody, _ := ioutil.ReadAll(r.Body)
-	var newSql coba
-
-	if r.Method == "POST" {
-		json.Unmarshal(reqBody, &newSql)
-		Hasil = append(Hasil, newSql)
-		db.Exec("insert into user (nama) values (?)", newSql.Nama)
-		json.NewEncoder(w).Encode(newSql)
-	}
-
-}
-
-func showSql(w http.ResponseWriter, r *http.Request) {
-
-	json.NewEncoder(w).Encode(Hasil)
-}
-func showData(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode(Datas)
+func dbMigrate(db *gorm.DB) {
+	db.AutoMigrate(&_userDB.User{},
+		&_transactionDB.Shipment{}, &_productDB.Product_type{}, &_transactionDB.Payment_Method{},
+		&_transactionDB.Transaction{}, &_transactionDB.Transaction_Detail{}, &_adminDB.Admin{})
 }
 
 func main() {
-	fmt.Println("hello juga")
-	r := mux.NewRouter()
-	// Hasil = []coba{}
-	Datas = []data{{Id: "1", FullName: "Ummul Qoyimah", Age: "21"}, {Id: "2", FullName: "Dewi Novita Sari", Age: "20"}}
-	r.HandleFunc("/", user)
-	r.HandleFunc("/show", showData)
-	http.Handle("/", r)
-	r.HandleFunc("/show/{id}", showSingleData)
-	r.HandleFunc("/sql", showSql)
-	r.HandleFunc("/addData", newData).Methods("POST")
-	r.HandleFunc("/addSql", newSql)
-
-	sqlQuery()
-
-	http.ListenAndServe(":8080", nil)
-	fmt.Println("Server started on: http://localhost:8080")
-	log.Println("Server started on: http://localhost:8080")
-}
-
-func connect() *sql.DB {
-	db, _ := sql.Open("mysql", "root:Ilovereza123@/coba")
-	return db
-}
-
-func sqlQuery() {
-	db := connect()
-	defer db.Close()
-
-	rows, err := db.Query("select nama from user")
-	if err != nil {
-		fmt.Println(err.Error())
-		return
+	configDB := _mysqlDriver.ConfigDB{
+		DB_Username: viper.GetString(`database.user`),
+		DB_Password: viper.GetString(`database.pass`),
+		DB_Host:     viper.GetString(`database.host`),
+		DB_Port:     viper.GetString(`database.port`),
+		DB_Database: viper.GetString(`database.name`),
 	}
 
-	defer rows.Close()
-
-	for rows.Next() {
-		var each = coba{}
-		rows.Scan(&each.Nama)
-		Hasil = append(Hasil, each)
-	}
-	// fmt.Print(result)
-
-	for _, each := range Hasil {
-		fmt.Println(each.Nama)
+	configJWT := _middleware.ConfigJWT{
+		SecretJWT:       viper.GetString(`jwt.secret`),
+		ExpiresDuration: viper.GetInt(`jwt.expired`),
 	}
 
+	configJWTAdmin := _middleware.ConfigJWT{
+		SecretJWT:       viper.GetString(`jwt.admin`),
+		ExpiresDuration: viper.GetInt(`jwt.expired`),
+	}
+	Conn := configDB.InitialDb()
+
+	dbMigrate(Conn)
+	e := echo.New()
+	timeoutContext := time.Duration(viper.GetInt("context.timeout")) * time.Second
+
+	userRepository := _userDB.NewMysqlRepository(Conn)
+	userUseCase := _userUseCase.NewUserUseCase(userRepository, timeoutContext, configJWT)
+	userController := _userController.NewUserController(userUseCase)
+
+	adminRepository := _adminDB.NewMysqlRepository(Conn)
+	adminUseCase := _adminUseCase.NewAdminUseCase(adminRepository, timeoutContext, configJWTAdmin)
+	adminController := _adminController.NewAdminController(adminUseCase)
+
+	transactionRepository := _transactionDB.NewMysqlRepository(Conn)
+	transactionUseCase := _transactionUseCase.NewTransactionUseCase(transactionRepository, timeoutContext, configJWT)
+	transactionController := _transactionController.NewTransactionController(transactionUseCase)
+
+	productRepository := _productDB.NewMysqlRepository(Conn)
+	productUseCase := _productUseCase.NewProductUseCase(productRepository, timeoutContext)
+	productController := _productController.NewProductController(productUseCase)
+
+	routesInit := routes.ControllerList{
+		UserController:        *userController,
+		TransactionController: *transactionController,
+		ProductController:     *productController,
+		JWTMiddleware:         configJWT.Init(),
+		AdminController:       *adminController,
+		JWTAdmin:              configJWTAdmin.Init(),
+	}
+	routesInit.RouteRegister(e)
+	log.Fatal(e.Start(viper.GetString("server.address")))
 }
+
+//  $ ssh -i "C:\Users\remus\Downloads\kampus_merdeka.pem" ec2-user@ec2-3-21-206-55.us-east-2.compute.amazonaws.com
+
+// [ec2-user@ip-172-31-31-116 ~]$ docker run -p 8000:8000 --name kampus_merdeka 19
+// 4517/kampus_merdeka:1.0.0
+// "host": "kampusmerdeka.cscvpk8eja5o.us-east-2.rds.amazonaws.com",
+// "port": "3306",
+// "user": "admin",

@@ -1,0 +1,21 @@
+{
+    "debug": true,
+    "server": {
+      "address": ":8000"
+    },
+    "context":{
+      "timeout":2
+    },
+    "database": {
+        "host": "kampusmerdeka.cscvpk8eja5o.us-east-2.rds.amazonaws.com",
+        "port": "3306",
+        "user": "admin",
+        "pass": "Ilovereza123",
+        "name": "clothes"
+    },
+    "jwt" : {
+      "secret" : "reza123",
+      "admin" : "admin123",
+      "expired" : 72
+    }
+  }

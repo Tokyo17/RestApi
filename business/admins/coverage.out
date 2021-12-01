@@ -1,0 +1,20 @@
+mode: set
+final/business/admins/usecase.go:17.98,23.2 1 1
+final/business/admins/usecase.go:25.96,26.23 1 1
+final/business/admins/usecase.go:30.2,30.24 1 1
+final/business/admins/usecase.go:34.2,34.27 1 1
+final/business/admins/usecase.go:38.2,39.16 2 1
+final/business/admins/usecase.go:42.2,42.19 1 1
+final/business/admins/usecase.go:26.23,28.3 1 0
+final/business/admins/usecase.go:30.24,32.3 1 0
+final/business/admins/usecase.go:34.27,36.3 1 0
+final/business/admins/usecase.go:39.16,41.3 1 0
+final/business/admins/usecase.go:45.97,46.17 1 1
+final/business/admins/usecase.go:50.2,50.20 1 1
+final/business/admins/usecase.go:54.2,57.17 4 1
+final/business/admins/usecase.go:60.2,60.16 1 1
+final/business/admins/usecase.go:63.2,63.19 1 1
+final/business/admins/usecase.go:46.17,48.3 1 0
+final/business/admins/usecase.go:50.20,52.3 1 0
+final/business/admins/usecase.go:57.17,59.3 1 0
+final/business/admins/usecase.go:60.16,62.3 1 0
